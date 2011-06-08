@@ -274,11 +274,13 @@ $.widget("ui.selectmenu", {
 				.data('optionClasses', selectOptionData[i].classes || '')
 				.bind("mouseup.selectmenu", function(event) {
 					if (self._safemouseup && !self._disabled(event.currentTarget) && !self._disabled($( event.currentTarget ).parents( "ul>li." + self.widgetBaseClass + "-group " )) ) {
-						var changed = $(this).data('index') != self._selectedIndex();
-						self.index($(this).data('index'));
-						self.select(event);
-						if (changed) {
-							self.change(event);
+						var oldIdx = self._selectedIndex(), newIdx = t.data('index');
+						if (self.select(event, oldIdx, newIdx) !== false) {
+							var changed = oldIdx != newIdx;
+							if (changed) {
+								self.index(t.data('index'));
+								self.change(event);
+							}
 						}
 						self.close(event, true);
 					}
@@ -484,12 +486,13 @@ $.widget("ui.selectmenu", {
 	},
 
 	// returns some usefull information, called by callbacks only
-	_uiHash: function() {
-		var index = this.index();
+	_uiHash: function(index) {
+		var idx = index || this.index();
+		var opt = $("option", this.element).eq(idx);
 		return {
 			index: index,
-			option: $("option", this.element).get(index),
-			value: this.element[0].value
+			option: opt,
+			value: opt.attr('value')
 		};
 	},
 
@@ -538,9 +541,9 @@ $.widget("ui.selectmenu", {
 		this._trigger("change", event, this._uiHash());
 	},
 
-	select: function(event) {
+	select: function(event, oldIdx, newIdx) {
 		if (this._disabled(event.currentTarget)) { return false; }
-		this._trigger("select", event, this._uiHash());
+		return this._trigger("select", event, { oldOpt: this._uiHash(oldIdx), newOpt: this._uiHash(newIdx) });
 	},
 
 	_closeOthers: function(event) {
